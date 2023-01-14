@@ -864,6 +864,7 @@ echoEV() {
 	done
 	$xtrace
 }
+echoV() { echoEV "$@" >&1; }
 
 # ----------------------
 
