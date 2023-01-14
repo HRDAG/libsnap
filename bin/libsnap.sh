@@ -104,7 +104,8 @@ function _abort() {
 
 readonly true=t false=
 
-our_path=${BASH_ARGV0-${0#-}}
+our_path=${BASH_ARGV0-$0}
+our_path=${our_path#-}
 [[ $our_path == */* ]] || our_path=$(type -p "$our_path")
 [[ $our_path == ./* ]] && our_path=${0#./}
 [[ $our_path ==  /* ]] || our_path=$PWD/$our_path
