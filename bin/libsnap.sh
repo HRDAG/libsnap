@@ -331,7 +331,7 @@ function set-mounts {
 setup-ps-options() {
 	[[ $# == 0 ]] || abort-function "takes no arguments"
 
-	[[ -v ps_opt_g ]] && return
+	[[ -v ps_opt_H ]] && return
 
 	# set variables that map Linux's 'ps' options to random OS's 'ps' opts
 	case $OSTYPE,$is_BSD in
