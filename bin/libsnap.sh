@@ -1080,8 +1080,9 @@ function profile-off() {
 	set-epoch_usecs
 	[[ ${do_profile-} ]] || { $xtrace; return $status; }
 	local function=${FUNCNAME[1]-main}
-	local name=${1:-${profiled_function2name[$function]}}
+	local name=${1:-${profiled_function2name[$function]-}}
 
+	[[ $name ]] && {
 	local -i epoch_start=${profiled_function2epoch[$name]-0}
 	(( $epoch_start > 0 )) || { $xtrace; return $status; }
 
@@ -1090,6 +1091,7 @@ function profile-off() {
 	profiled_function2count[$name]+=1
 
 	profiled_function2epoch[$name]=0 # in case profile-off without -on
+	}
 	$xtrace
 	return $status
 }
