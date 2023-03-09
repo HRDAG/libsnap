@@ -957,22 +957,26 @@ unset -f wont-trace will-trace
 # ----------------------------------------------------------------------------
 
 print-or-egrep-Usage-then-exit() {
+	[[ -o xtrace ]] && { set +x; local xtrace="set -x"; } || local xtrace=
 	[[ ${1-} == -[hHk] ]] && shift	# strip help or keyword-search option
 	[[ $# == 0 ]] && echo -e "$Usage" && _libsnap-exit 0
 
 	echo "$Usage" | egrep -i "$@"
+	$Trace
 	_libsnap-exit 0
 }
 
 # ---------------------------------
 
 abort-with-action-Usage() {
+	[[ -o xtrace ]] && { set +x; local xtrace="set -x"; } || local xtrace=
 	local opts= ; while [[ ${1-} == -* ]] ; do opts+=" $1"; shift; done
 	local _action=${*:-$action}
 
 	echo -e "\nBad arguments; here's the usage for this action:"
 	# shellcheck disable=SC2086 # $opts may be null or multi
 	echo "$Usage" | grep $opts "^ *$_action" >&2; echo
+	$Trace
 	_libsnap-exit 1
 }
 
