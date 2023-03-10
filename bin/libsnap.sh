@@ -315,10 +315,12 @@ prepend-to-PATH-var PATH $homebrew_install_dir/*/libexec/*bin
 function set-mounts {
 
 	local mounts_path=/proc/mounts
+	mounts=
 	if [[ -f $mounts_path ]]	# FreeBSD doesn't have this
 	   then read -d '\0' -r mounts < "$mounts_path"
 	   else mounts=$(mount)
 	fi
+	[[ $mounts ]]
 }
 
 # ----------------------------------------------------------------------------
@@ -1285,8 +1287,9 @@ function set-FS_type--from-path() {
 	[[ -e $path ]] || abort "mount-dir='$path' doesn't exist"
 
 	local mounts
-	set-mounts
-	FS_type=$(sed -r -n "s~^[^ ]+ $path ([^ ]+) .*~\1~p" <<<"$mounts")
+	set-mounts &&
+	FS_type=$(sed -r -n "s~^[^ ]+ $path ([^ ]+) .*~\1~p" <<<"$mounts") ||
+	FS_type=
 
 	if [[ ! $FS_type ]]
 	   then have-cmd lsblk ||
@@ -1506,8 +1509,9 @@ function set-FS_device--from-mount-dir() {
 	[[ -e $path ]] || { warn "path=$path doesn't exist"; x-return 1; }
 
 	local mounts
-	set-mounts
-	FS_device=$(sed -r -n "s~^([^ ]+) $path .*~\1~p" <<<"$mounts")
+	set-mounts &&
+	FS_device=$(sed -r -n "s~^([^ ]+) $path .*~\1~p" <<<"$mounts") ||
+	FS_device=
 	[[ $FS_device ]]
 	x-return
 }
@@ -1523,8 +1527,9 @@ function set-mount_dir--from-FS-device() {
 	[[ $dev == /* ]] || dev=$PWD/$dev
 
 	local mounts
-	set-mounts
-	mount_dir=$(sed -r -n "s~^$dev ([^ ]+) .*~\1~p" <<<"$mounts")
+	set-mounts &&
+	mount_dir=$(sed -r -n "s~^$dev ([^ ]+) .*~\1~p" <<<"$mounts") ||
+	mount_dir=
 	[[ $mount_dir ]] && { x-return 0; }
 
 	# shellcheck disable=SC1087,SC2046
@@ -1647,16 +1652,18 @@ is-arg1-in-arg2 12 "$fields" && _abort "12   is  in fields"
 # ----------------------------------------------------------------------------
 
 function is-an-FS-device-mounted() {
+	can-profile-not-trace # use x-return to leave function; can comment-out
 	[[ $# == 1 ]] || abort-function "{ device | mount-dir }"
 	local path=$1
 	[[ $path == /* ]] || path=$PWD/$path
-	[[ $path != /dev/* && ! -d $path ]] && return 1
+	[[ $path != /dev/* && ! -d $path ]] && { x-return 1; }
 	[[ -b $path || -d $path ]] ||
 	    abort-function ": can't find device or directory for '$1'"
 
 	local mounts
-	set-mounts
-	is-arg1-in-arg2 "$path" "$mounts"
+	[[ -o xtrace ]] && { set +x; local xtrace="set -x"; } || local xtrace=
+	set-mounts && is-arg1-in-arg2 "$path" "$mounts"
+	x-return
 }
 
 [[ ! $_do_run_unit_tests ]] ||
