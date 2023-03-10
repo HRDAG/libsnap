@@ -1286,24 +1286,22 @@ function set-FS_type--from-path() {
 	local  path=$1
 	[[ -e $path ]] || abort "mount-dir='$path' doesn't exist"
 
-	local mounts
+	local mounts dev mount junk
 	set-mounts &&
-	FS_type=$(sed -r -n "s~^[^ ]+ $path ([^ ]+) .*~\1~p" <<<"$mounts") ||
-	FS_type=
+	egrep "(^| )$path " <<<"$mounts" | read -r dev mount FS_type junk &&
+	   return 0
 
+	have-cmd lsblk ||
+	   abort "fix $FUNCNAME for '$path', email to ${coder-Scott}"
+	[[ ! -b "$path" ]] && local FS_device &&
+	    set-FS_device--from-mount-dir "$path" && path=$FS_device
+	[[ ! -b "$path" ]] &&
+	    abort-function "'$path' is not accessible"
+	local cmd="lsblk --noheadings --nodeps --output=fstype $path"
+	FS_type=$($cmd)
 	if [[ ! $FS_type ]]
-	   then have-cmd lsblk ||
-		   abort "fix $FUNCNAME for '$path', email to ${coder-Scott}"
-		[[ ! -b "$path" ]] && local FS_device &&
-		    set-FS_device--from-mount-dir "$path" && path=$FS_device
-		[[ ! -b "$path" ]] &&
-		    abort-function "'$path' is not accessible"
-		local cmd="lsblk --noheadings --nodeps --output=fstype $path"
-		FS_type=$($cmd)
-		if [[ ! $FS_type ]]
-		   then # shellcheck disable=SC2086 # $cmd has its arguments
-			FS_type=$(sudo $cmd)
-		fi
+	   then # shellcheck disable=SC2086 # $cmd has its arguments
+		FS_type=$(sudo $cmd)
 	fi
 
 	[[ $FS_type ]] || warn "$FUNCNAME: $path has no discernible filesystem"
