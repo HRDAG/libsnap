@@ -120,7 +120,7 @@ if [[ $our_path == */libsnap.sh ]]
 	[[ $* == -r ]]  || _abort "only -r (run regression tests) is supported"
 	[[ $UID != 0 ]] || _abort "don't run as root with -r"
 
-	! type -t shellcheck > $dev_null || shellcheck "$our_path" || exit 1
+	! type -t shellcheck > "$dev_null" || shellcheck "$our_path" || exit 1
 	set -u				# for unit tests
 	_do_run_unit_tests=$true	# ~100 milliseconds
    else _do_run_unit_tests=$false	#  ~10 milliseconds
@@ -196,7 +196,7 @@ unset _foo _arr _map _Arr _Map
 # [[ -v $1 ]] requires $1 to be set, is-var just requires a declaration
 function is-var() {
 	[[ $# == 1 ]] || abort-function "var-name"
-	declare -p "$1" &> $dev_null
+	declare -p "$1" &> "$dev_null"
 }
 
 alias is-variable=is-var
@@ -369,7 +369,7 @@ bash_builtins="basename dirname id realpath rmdir rm sleep tee uname"
 [[ $BASH_LOADABLES_PATH ]] &&
 for _builtin in $bash_builtins
     do	enable -f "$_builtin" "$_builtin"
-done 2> $dev_null			# rm is only in bash-5.0, ignore error
+done 2> "$dev_null"			# rm is only in bash-5.0, ignore error
 
 # ----------------------------------------------------------------------------
 # provide a directory for temporary files that's safe from symlink attacks
@@ -530,7 +530,7 @@ function log() {
 
 	[[ ( ! -e $file_for_logging && -w ${file_for_logging%/*} ) ||
 	       -w $file_for_logging ]] && local sudo= || local sudo=sudo
-	[[ -e $file_for_logging ]] || $sudo mkdir -p ${file_for_logging%/*}
+	[[ -e $file_for_logging ]] || $sudo mkdir -p "${file_for_logging%/*}"
 
 	if [[ $IfRun ]]
 	   then local _file_for_logging=$dev_null
@@ -542,7 +542,7 @@ function log() {
 	eval  "_log_msg_prefix=\"$_log_msg_prefix\"" # can hold variables
 	strip-trailing-whitespace _log_msg_prefix
 	echo "$log_date_time$_log_msg_prefix: $_msg" |
-	   $sudo tee -a $_file_for_logging
+	   $sudo tee -a "$_file_for_logging"
 	$xtrace
 }
 
@@ -651,14 +651,14 @@ abort() {
 
 	if [[ ! $is_recursion ]]
 	   then # shellcheck disable=SC2048,SC2086
-		log "$(master_PID=$$ abort -r $* 2>&1)" > $dev_null
+		log "$(master_PID=$$ abort -r $* 2>&1)" > "$dev_null"
 	fi
 
-	if [[ ${master_PID-} && $master_PID != "$$" ]] # in a sub-shell?
-	   then trap '' TERM		 # don't kill ourself when ...
-		kill -TERM -$master_PID	 # kill our parent and its children
+	if [[ ${master_PID-} && "$master_PID" != "$$" ]] # in a sub-shell?
+	   then trap '' TERM		  # don't kill ourself when ...
+		kill -TERM -"$master_PID" # kill our parent and its children
 		sleep 1
-		kill -KILL -$master_PID
+		kill -KILL -"$master_PID"
 	fi 2>&1 | fgrep -v 'No such process'
 	_libsnap-exit 1
 }
@@ -779,14 +779,14 @@ function set-var_value--for-debugger() {
 	local _var_name_=$1 declare_output
 	local -n var=$_var_name_
 
-	while declare_output=$(declare -p "$_var_name_" 2>$dev_null)
+	while declare_output=$(declare -p "$_var_name_" 2>"$dev_null")
 	   do	[[ $declare_output = *" -n "* ]] || break
 		_var_name_=${declare_output#*=}
 		_var_name_=${_var_name_//\"/}
 	done
 
 	if [[ $declare_output != *=* ]]
-	   then if declare -p "$_var_name_"  &> $dev_null
+	   then if declare -p "$_var_name_"  &> "$dev_null"
 		   then var_value='<unset>'
 		   else var_value='<non-existent>'
 		fi
@@ -927,6 +927,7 @@ function suspend-tracing() {
 # show the values of the variable names passed to us, then restore traing state
 function restore-tracing {
 
+	# shellcheck disable=SC2320 # shellcheck-0.9 got confused
 	local status=$?			# status from caller's previous command
 	# see is-arg1-in-arg2 function for this logic
 	[[ " ${!funcname2was_tracing[*]} " == *" ${FUNCNAME[1]} "* ]] ||
@@ -1147,7 +1148,7 @@ write-profile-data() {
 	fi
 	[[ ${filename##*/} == *.* ]] || filename+=.csv
 
-	print-profile-data "$@" | echo-to-file - $filename
+	print-profile-data "$@" | echo-to-file - "$filename"
 }
 
 [[ $_do_run_unit_tests ]] && {
@@ -1231,7 +1232,7 @@ function have-cmd() {
 	can-profile-not-trace # use x-return to leave function; can comment-out
 	local _cmd
 	for _cmd
-	   do	type -t "$_cmd" > $dev_null && { x-return 0; }
+	   do	type -t "$_cmd" > "$dev_null" && { x-return 0; }
 	done
 	x-return 1
 }
@@ -1706,7 +1707,7 @@ _chdir() {
 	if [[ $cmd == popd ]]
 	   then popd	      || abort       "popd -> $?"	; cmd="popd to"
 	   else $cmd "$_dir"  || abort "$cmd $_dir -> $?"
-	fi > $dev_null	    # suppress output of 'dirs' when run pushd or popd
+	fi > "$dev_null"    # suppress output of 'dirs' when run pushd or popd
 
 	if [[ ! $is_quiet && ( $IfRun || ${do_show_cd-} ) && ! ${Trace-} ]]
 	   then local _msg="$cmd $PWD"
@@ -1793,8 +1794,8 @@ copy-file-perms() {
 	local path sudo=
 	for path
 	    do	[[ -f "$path" ]] &&
-		    # we might not have GNU utils, or might need sudo
-		    cp --attributes-only -p "$reference" "$path" 2>$dev_null &&
+		 # we might not have GNU utils, or might need sudo
+		 cp --attributes-only -p "$reference" "$path" 2>"$dev_null" &&
 		    continue
 		if [[ $opt == -f ]]
 		   then if [[ -e "$path" ]]
@@ -1887,7 +1888,7 @@ function set-backup_suffix--for-emacs() {
 	let max_num+=1
 	backup_suffix=.~$max_num~
 
-	x-return $status
+	x-return "$status"
 }
 
 # ---------------------------------
@@ -1967,14 +1968,14 @@ function read-all() {
 [[ $_do_run_unit_tests ]] && {
 file=/etc/hostname
 [[ -s $file ]] && {
-cat   $file > $dev_null			# pull into page cache for profiling
+cat   $file > "$dev_null"		# pull into page cache for profiling
 read-all data $file && [[ $data ]] || _abort "should return success"
 [[ $data == "$HOSTNAME" ]] || _abort "read-all got wrong data: $data"; }
-( read-all data /etc/shadow 2>$dev_null ) && _abort "can't read /etc/shadow"
-( read-all data /etc        2>$dev_null ) && _abort "can't read /etc/"
+( read-all data /etc/shadow 2>"$dev_null" ) && _abort "can't read /etc/shadow"
+( read-all data /etc        2>"$dev_null" ) && _abort "can't read /etc/"
 unset data
 read-all -A data DoesNotExist || [[ -v data ]] && _abort "nothing to read"
-read-all data $dev_null && _abort "should return nothing, but got '$data'"
+read-all data "$dev_null" && _abort "should return nothing, but got '$data'"
 }
 
 #############################################################################
@@ -1997,7 +1998,7 @@ function is-process-alive() {
 	    do	PID=${PID#-}		# in case passed PGID indicator
 		if [[ -e /proc/mounts ]]
 		   then [[ -d /proc/$PID ]]
-		   else ps "$PID" &> $dev_null
+		   else ps "$PID" &> "$dev_null"
 		fi || { x-return 1; }	# x-return is multi-cmd alias, so {}
 	done
 	x-return 0
@@ -2408,7 +2409,7 @@ killer() {
 	for spec in HUP TERM INT KILL
 	    do	kill -SIG$spec "$PID" || break
 		msleep 1
-	done &> $dev_null		# PID might already be dead
+	done &> "$dev_null"		# PID might already be dead
 	x-return
 }
 
@@ -2443,9 +2444,9 @@ function run-until-timeout() {
 	killer -s "$seconds" $func_PID &
 	local killer_PID=$!
 
-	wait $func_PID &> $dev_null	# hide shell's error msg when killed
+	wait $func_PID &> "$dev_null"	# hide shell's error msg when killed
 	local status=$?
-	kill $killer_PID &> $dev_null	# might have run to completion
+	kill $killer_PID &> "$dev_null"	# might have run to completion
 
 	_run-echo-output stdout
 	_run-echo-output stderr >&2
