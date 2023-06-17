@@ -314,9 +314,9 @@ prepend-to-PATH-var PATH $homebrew_install_dir/*/libexec/*bin
 
 function set-mounts {
 
-	local mounts_path=/proc/mounts
+	local mounts_path=/etc/mtab
 	mounts=
-	if [[ -f $mounts_path ]]	# FreeBSD doesn't have this
+	if [[ -f $mounts_path ]]
 	   then read -d '\0' -r mounts < "$mounts_path"
 	   else mounts=$(mount)
 	fi
@@ -2439,15 +2439,18 @@ function run-until-timeout() {
 
 	local stdout_file=$tmp_dir/run-stdout.$BASHPID
 	local stderr_file=$tmp_dir/run-stderr.$BASHPID
+# echo "$@" # set -x;
 	"$@" > "$stdout_file" 2> "$stderr_file" &
 	local func_PID=$!
+	msleep 1			# seems to be a race on fast CPU
 
 	killer -s "$seconds" $func_PID &
 	local killer_PID=$!
 
-	wait $func_PID &> "$dev_null"	# hide shell's error msg when killed
+	wait $func_PID &> "$dev_null"	# hide shell's error msg if killed
 	local status=$?
 	kill $killer_PID &> "$dev_null"	# might have run to completion
+	set +x
 
 	_run-echo-output stdout
 	_run-echo-output stderr >&2
