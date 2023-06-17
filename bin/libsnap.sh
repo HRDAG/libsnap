@@ -581,6 +581,7 @@ print-call-stack() {
 	    { (( Trace_level >= $1 )) || { $xtrace; return; } ; shift; }
 	assert-not-option -o "${1-}"
 
+	(( ${#FUNCNAME[@]} > stack_skip+1 )) || return # leave if top-level
 	local log_date_time
 	set-log_date_time
 	header -E "$log_date_time call stack $*" # include optional message
