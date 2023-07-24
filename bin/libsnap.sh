@@ -1572,7 +1572,9 @@ set-FS_label--from-mount_dir() {
 function set-mount_dir--from-dir() {
 	[[ $# == 1 ]] || abort-function "dir"
 
-	mount_dir=$(df --output=source "$1")
+	# shellcheck disable=SC2046 # we want word splitting
+	set -- $(df --output=source "$1")
+	mount_dir=$2
 }
 
 #############################################################################
