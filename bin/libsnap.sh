@@ -1569,6 +1569,12 @@ set-FS_label--from-mount_dir() {
 	FS_label=${FS_label//\//_}
 }
 
+function set-mount_dir--from-dir() {
+	[[ $# == 1 ]] || abort-function "dir"
+
+	mount_dir=$(df --output=source "$1")
+}
+
 #############################################################################
 #############################################################################
 ### Functions to workaround printf's lack of terminfo knowledge.
